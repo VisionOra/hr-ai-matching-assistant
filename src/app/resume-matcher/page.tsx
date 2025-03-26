@@ -1,29 +1,44 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Button, Container, Typography, CircularProgress } from '@mui/material';
+import { Box, Button, Container, Typography, CircularProgress, Grid, Paper, Chip, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { CheckCircleOutline, ErrorOutline, Star, ArrowForward } from '@mui/icons-material';
 
 interface MatchResponse {
   job: {
     category: string;
     requiredSkills: string[];
     experienceLevel: string;
+    keyRequirements: string[];
+    preferredQualifications: string[];
   };
   resume: {
     category: string;
     skills: string[];
-    experienceYears: number;
+    experienceYears: string;
+    relevantExperience: string[];
+    qualifications: string[];
   };
   match: {
     matchScore: number;
+    technicalMatchScore: number;
+    experienceMatchScore: number;
+    qualificationsMatchScore: number;
+    cultureFitScore: number;
     matchedSkills: string[];
-    missingSkills: string[];
-    strongPoints: string[];
-    weakPoints: string[];
-    techSimilarityPercent: number;
-    fitInsight: string;
-    finalRecommendation: "Yes" | "No";
-    reasoning: string;
+    missingCriticalSkills: string[];
+    transferableSkills: string[];
+    strengthAreas: string[];
+    gapAreas: string[];
+    competitiveAdvantages: string[];
+    developmentAreas: string[];
+    fitSummary: string;
+    recommendation: {
+      decision: 'STRONG_MATCH' | 'POTENTIAL_MATCH' | 'NOT_RECOMMENDED';
+      confidence: number;
+      nextSteps: string[];
+      reasoning: string[];
+    };
   };
 }
 
@@ -146,89 +161,190 @@ export default function ResumeMatcherPage() {
 
           {/* Match Results */}
           <Box sx={{ p: 3, bgcolor: '#e3f2fd', borderRadius: 2 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Match Analysis
-            </Typography>
-            
-            {/* Overall Match Score */}
+            {/* Overall Score and Recommendation */}
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Typography variant="h4" color="primary">
-                {result.match.matchScore}% Overall Match
+                {result.match.matchScore}% Match
               </Typography>
-              <Typography variant="h6" color={result.match.finalRecommendation === "Yes" ? "success.main" : "error.main"}>
-                {result.match.finalRecommendation === "Yes" ? "Recommended" : "Not Recommended"}
+              <Typography 
+                variant="h6" 
+                color={
+                  result.match.recommendation.decision === 'STRONG_MATCH' 
+                    ? 'success.main' 
+                    : result.match.recommendation.decision === 'POTENTIAL_MATCH'
+                    ? 'warning.main'
+                    : 'error.main'
+                }
+                sx={{ mt: 1 }}
+              >
+                {result.match.recommendation.decision.replace('_', ' ')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Confidence: {result.match.recommendation.confidence}%
               </Typography>
             </Box>
 
-            {/* Technical Match */}
-            <Box sx={{ mb: 3, textAlign: 'center' }}>
-              <Typography variant="h6" color="primary">
-                {result.match.techSimilarityPercent}%
+            {/* Detailed Scores */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                Detailed Scores
               </Typography>
-              <Typography variant="body2">Technical Skills Match</Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center', p: 1 }}>
+                    <Typography variant="h6" color="primary">
+                      {result.match.technicalMatchScore}%
+                    </Typography>
+                    <Typography variant="body2">Technical Skills (40%)</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center', p: 1 }}>
+                    <Typography variant="h6" color="primary">
+                      {result.match.experienceMatchScore}%
+                    </Typography>
+                    <Typography variant="body2">Experience (30%)</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center', p: 1 }}>
+                    <Typography variant="h6" color="primary">
+                      {result.match.qualificationsMatchScore}%
+                    </Typography>
+                    <Typography variant="body2">Qualifications (20%)</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center', p: 1 }}>
+                    <Typography variant="h6" color="primary">
+                      {result.match.cultureFitScore}%
+                    </Typography>
+                    <Typography variant="body2">Culture Fit (10%)</Typography>
+                  </Box>
+                </Grid>
+              </Grid>
             </Box>
 
             {/* Skills Analysis */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" color="primary" gutterBottom>
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom color="primary">
                 Skills Analysis
               </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="success.main" gutterBottom>
-                  <strong>Matched Skills:</strong>
-                </Typography>
-                <Typography variant="body2">
-                  {result.match.matchedSkills.join(', ')}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="error.main" gutterBottom>
-                  <strong>Missing Skills:</strong>
-                </Typography>
-                <Typography variant="body2">
-                  {result.match.missingSkills.join(', ')}
-                </Typography>
-              </Box>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="success.main">
+                      Matched Skills
+                    </Typography>
+                    <Paper sx={{ p: 1, bgcolor: 'transparent' }}>
+                      {result.match.matchedSkills.map((skill, i) => (
+                        <Chip 
+                          key={skill} 
+                          label={skill} 
+                          sx={{ m: 0.5 }} 
+                          color="success"
+                        />
+                      ))}
+                    </Paper>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="error.main">
+                      Missing Critical Skills
+                    </Typography>
+                    <Paper sx={{ p: 1, bgcolor: 'transparent' }}>
+                      {result.match.missingCriticalSkills.map((skill, i) => (
+                        <Chip 
+                          key={skill} 
+                          label={skill} 
+                          sx={{ m: 0.5 }} 
+                          color="error"
+                        />
+                      ))}
+                    </Paper>
+                  </Box>
+                </Grid>
+              </Grid>
             </Box>
 
-            {/* Strengths and Weaknesses */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" color="primary" gutterBottom>
-                Strengths & Weaknesses
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="success.main" gutterBottom>
-                  <strong>Strong Points:</strong>
-                </Typography>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {result.match.strongPoints.map((point, index) => (
-                    <li key={index}><Typography variant="body2">{point}</Typography></li>
-                  ))}
-                </ul>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="error.main" gutterBottom>
-                  <strong>Areas for Improvement:</strong>
-                </Typography>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {result.match.weakPoints.map((point, index) => (
-                    <li key={index}><Typography variant="body2">{point}</Typography></li>
-                  ))}
-                </ul>
-              </Box>
-            </Box>
-
-            {/* Detailed Analysis */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" color="primary" gutterBottom>
+            {/* Strengths and Gaps */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom color="primary">
                 Detailed Analysis
               </Typography>
-              <Typography variant="body2" paragraph>
-                {result.match.fitInsight}
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="success.main" gutterBottom>
+                    Strength Areas
+                  </Typography>
+                  <List>
+                    {result.match.strengthAreas.map((strength) => (
+                      <ListItem key={`strength-${strength.substring(0, 20)}`}>
+                        <ListItemIcon>
+                          <CheckCircleOutline color="success" />
+                        </ListItemIcon>
+                        <ListItemText primary={strength} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="error.main" gutterBottom>
+                    Areas for Development
+                  </Typography>
+                  <List>
+                    {result.match.developmentAreas.map((area) => (
+                      <ListItem key={`development-${area.substring(0, 20)}`}>
+                        <ListItemIcon>
+                          <ErrorOutline color="error" />
+                        </ListItemIcon>
+                        <ListItemText primary={area} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Competitive Advantages */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                Competitive Advantages
               </Typography>
-              <Typography variant="body2">
-                <strong>Final Assessment:</strong> {result.match.reasoning}
+              <List>
+                {result.match.competitiveAdvantages.map((advantage) => (
+                  <ListItem key={`advantage-${advantage.substring(0, 20)}`}>
+                    <ListItemIcon>
+                      <Star color="primary" />
+                    </ListItemIcon>
+                    <ListItemText primary={advantage} />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+
+            {/* Summary and Next Steps */}
+            <Box>
+              <Typography variant="h6" gutterBottom color="primary">
+                Summary & Recommendations
               </Typography>
+              <Typography variant="body1" paragraph>
+                {result.match.fitSummary}
+              </Typography>
+              <Typography variant="subtitle2" gutterBottom>
+                Next Steps:
+              </Typography>
+              <List>
+                {result.match.recommendation.nextSteps.map((step) => (
+                  <ListItem key={`step-${step.substring(0, 20)}`}>
+                    <ListItemIcon>
+                      <ArrowForward color="primary" />
+                    </ListItemIcon>
+                    <ListItemText primary={step} />
+                  </ListItem>
+                ))}
+              </List>
             </Box>
           </Box>
         </Box>

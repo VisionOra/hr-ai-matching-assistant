@@ -19,9 +19,10 @@ export async function POST(request: Request) {
 
     // Initialize LangChain components
     const model = new ChatOpenAI({
-      temperature: 0,
+      temperature: 0,  // Ensure deterministic outputs
       modelName: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       openAIApiKey: process.env.OPENAI_API_KEY,
+      maxTokens: 2000,  // Ensure sufficient response length
     });
 
     // Load and process files
@@ -48,32 +49,97 @@ export async function POST(request: Request) {
     // Comprehensive analysis in a single call
     const analysisResult = await model.invoke([
       new HumanMessage(`
-    You are an expert career coach and hiring advisor. Analyze the provided job description and resume,
-    then produce a comprehensive analysis in a well-structured JSON object with the following format:
+    You are an expert ATS (Applicant Tracking System) and AI-powered career matching specialist.
+    Your task is to provide CONSISTENT and DETERMINISTIC analysis of the job description and resume.
+    Follow these scoring rules STRICTLY:
 
-    {
-      "job": {
-        "category": "job category name",
-        "requiredSkills": ["list", "of", "required", "skills"],
-        "experienceLevel": "experience level required"
+    Scoring System (Must follow exactly):
+    1. Technical Skills Scoring (40% of total):
+       - Each matched technical skill: +5 points
+       - Each related/transferable skill: +2 points
+       - Perfect technical stack match: +10 bonus points
+       - Score = (total points / maximum possible points) * 40
+
+    2. Experience Scoring (30% of total):
+       - Years of experience match: 0-15 points
+         * Exceeds required: 15 points
+         * Meets required: 12 points
+         * Within 1 year under: 8 points
+         * Within 2 years under: 4 points
+         * More than 2 years under: 0 points
+       - Role relevancy: 0-10 points
+       - Industry match: 0-5 points
+       Score = (total points / 30) * 30
+
+    3. Qualifications Scoring (20% of total):
+       - Education level match: 0-10 points
+       - Certifications match: 0-5 points
+       - Domain expertise: 0-5 points
+       Score = (total points / 20) * 20
+
+    4. Soft Skills & Culture Scoring (10% of total):
+       - Leadership alignment: 0-4 points
+       - Team collaboration: 0-3 points
+       - Communication indicators: 0-3 points
+       Score = (total points / 10) * 10
+
+    Final Score Calculations:
+    - Overall Match Score = Sum of all category scores
+    - Round all scores to nearest integer
+    - Confidence Score must be between 70-100 based on data quality
+
+    Decision Rules:
+    - STRONG_MATCH: Overall score ≥ 80
+    - POTENTIAL_MATCH: Overall score 60-79
+    - NOT_RECOMMENDED: Overall score < 60
+
+    Provide output in the following JSON structure:
+    ${JSON.stringify({
+      job: {
+        category: "Precise job category",
+        requiredSkills: ["Prioritized list of required skills"],
+        experienceLevel: "Required years and level",
+        keyRequirements: ["Critical job requirements"],
+        preferredQualifications: ["Nice-to-have qualifications"]
       },
-      "resume": {
-        "category": "professional category",
-        "skills": ["list", "of", "candidate", "skills"],
-        "experienceYears": number of years of experience
+      resume: {
+        category: "Candidate's professional category",
+        skills: ["All identified skills"],
+        experienceYears: "Total relevant years",
+        relevantExperience: ["Key relevant experiences"],
+        qualifications: ["Education and certifications"]
       },
-      "match": {
-        "matchScore": number between 0-100 indicating overall match percentage,
-        "matchedSkills": ["list of skills that appear in both profiles"],
-        "missingSkills": ["required skills missing from candidate profile"],
-        "strongPoints": ["bullet points of candidate strengths"],
-        "weakPoints": ["bullet points of candidate weaknesses"],
-        "techSimilarityPercent": number between 0-100 for technical skills match,
-        "fitInsight": "detailed paragraph about candidate suitability",
-        "finalRecommendation": "Yes" or "No" based on overall fit,
-        "reasoning": "explanation of the recommendation"
+      match: {
+        matchScore: "Overall score (0-100)",
+        technicalMatchScore: "Technical skills score (0-40)",
+        experienceMatchScore: "Experience match score (0-30)",
+        qualificationsMatchScore: "Qualifications match score (0-20)",
+        cultureFitScore: "Soft skills and culture score (0-10)",
+        matchedSkills: ["Skills present in both"],
+        missingCriticalSkills: ["Required skills not found"],
+        transferableSkills: ["Related skills that could apply"],
+        strengthAreas: ["Detailed points of strong alignment"],
+        gapAreas: ["Specific gaps in requirements"],
+        competitiveAdvantages: ["Unique strengths that set candidate apart"],
+        developmentAreas: ["Specific skills or qualifications to acquire"],
+        fitSummary: "Detailed paragraph analyzing overall fit",
+        recommendation: {
+          decision: "STRONG_MATCH | POTENTIAL_MATCH | NOT_RECOMMENDED",
+          confidence: "Confidence level (70-100)",
+          nextSteps: ["Specific recommended actions"],
+          reasoning: ["Key factors influencing decision"]
+        }
       }
-    }
+    }, null, 2)}
+
+    Analysis Requirements:
+    1. Use exact text matching for skills (case-insensitive)
+    2. Count only explicitly mentioned skills and qualifications
+    3. Use specific examples from the resume/job description in all feedback
+    4. Provide only fact-based, evidence-supported analysis
+    5. Follow the scoring system exactly as specified
+    6. Ensure scores add up correctly
+    7. Be consistent in skill identification across analyses
 
     Job Description:
     ${jobText}
@@ -81,16 +147,8 @@ export async function POST(request: Request) {
     Resume:
     ${resumeText}
 
-    Guidelines for analysis:
-    1. Be thorough in identifying required skills from the job description
-    2. Carefully match candidate skills against requirements
-    3. Consider both technical skills and experience level
-    4. Provide specific, actionable insights in strongPoints and weakPoints
-    5. Make a clear recommendation based on overall fit
-    6. Ensure all percentage scores are integers
-    7. Keep the fitInsight and reasoning concise but informative
-
-    Return only the JSON object, no additional commentary.
+    Remember: Your analysis must be DETERMINISTIC - the same inputs should always produce the same outputs.
+    Follow the scoring rules EXACTLY as specified above.
     `)
     ]);
 
